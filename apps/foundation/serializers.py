@@ -34,6 +34,7 @@ _HEX_COLOR_RE = re.compile(r"^#([0-9a-fA-F]{6})$")
 
 HOME_SECTION_DEFAULTS = {
     "hero": True,
+    "donate": True,
     "timeline": True,
     "news": True,
     "projects": True,
@@ -72,8 +73,16 @@ def normalize_home_section_order(raw) -> list:
         seen.add(key)
         order.append(key)
     for key in HOME_SECTION_ORDER_KEYS:
-        if key not in seen:
-            order.append(key)
+        if key in seen:
+            continue
+        default_index = fallback.index(key)
+        insert_at = len(order)
+        for index, existing in enumerate(order):
+            if fallback.index(existing) > default_index:
+                insert_at = index
+                break
+        order.insert(insert_at, key)
+        seen.add(key)
     return order
 
 BODY_BACKGROUND_DEFAULTS = {
@@ -385,6 +394,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     heroAutoplayDelay = serializers.IntegerField(
         source="hero_autoplay_delay", required=False
     )
+    footerNav = serializers.JSONField(source="footer_nav", required=False)
 
     class Meta:
         model = SiteSettings
@@ -430,6 +440,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "homeSectionOrder",
             "heroTemplate",
             "heroAutoplayDelay",
+            "footerNav",
             "created_at",
             "updated_at",
         )
@@ -482,6 +493,74 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
     def validate_heroAutoplayDelay(self, value):
         return _normalize_hero_autoplay(value)
+
+    def validate_footerNav(self, value):
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError("فرمت پیوندهای فوتر نامعتبر است.")
+        cleaned = []
+        allowed_icons = {
+            "home",
+            "person",
+            "biography",
+            "timeline",
+            "foundation",
+            "charter",
+            "organs",
+            "students",
+            "news",
+            "magazine",
+            "books",
+            "projects",
+            "gallery",
+            "photos",
+            "video",
+            "collaborate",
+            "memories",
+            "support",
+            "sponsors",
+            "contact",
+            "search",
+            "places",
+            "archive",
+            "sparkles",
+        }
+        for index, section in enumerate(value[:8]):
+            if not isinstance(section, dict):
+                continue
+            links = []
+            for link in (section.get("links") or [])[:16]:
+                if not isinstance(link, dict):
+                    continue
+                label = str(link.get("label") or "").strip()[:80]
+                href = str(link.get("href") or "").strip()[:300]
+                if not label and not href:
+                    continue
+                icon = link.get("icon")
+                links.append(
+                    {
+                        "label": label,
+                        "href": href,
+                        "icon": icon if icon in allowed_icons else "sparkles",
+                        "enabled": bool(link.get("enabled", True)),
+                    }
+                )
+            title = str(section.get("title") or "").strip()[:80]
+            if not title and not links:
+                continue
+            icon = section.get("icon")
+            section_id = str(section.get("id") or "").strip()[:40] or f"section-{index + 1}"
+            cleaned.append(
+                {
+                    "id": section_id,
+                    "title": title or "پیوندها",
+                    "icon": icon if icon in allowed_icons else "sparkles",
+                    "enabled": bool(section.get("enabled", True)),
+                    "links": links,
+                }
+            )
+        return cleaned
 
     def validate_homeSectionOrder(self, value):
         if value is None:

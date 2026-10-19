@@ -48,7 +48,7 @@ def public_ai_config(ops: OpsSettings | None = None) -> dict:
         "سلام! درباره بنیاد، پروژه‌ها و میراث دکتر مجتهدی بپرسید."
     )
     return {
-        "enabled": bool(ops.ai_enabled and (ops.ai_api_key or "").strip()),
+        "enabled": bool(ops.ai_enabled),
         "welcomeMessage": welcome,
     }
 
@@ -215,6 +215,41 @@ def _call_chat_completions(
     return text
 
 
+def _guide_reply(question: str, ops: OpsSettings) -> str:
+    q = (question or "").strip().lower()
+    site = SiteSettings.objects.filter(key="default").first()
+    contact = ""
+    if site and (site.phone or site.email):
+        bits = [bit for bit in [site.phone, site.email] if bit]
+        contact = " تماس: " + " · ".join(bits) + "."
+
+    if not q:
+        return "سؤالتان را بنویسید تا راهنمایی کنم."
+    if any(word in q for word in ("عضویت", "عضو", "ثبت‌نام", "ثبت نام")):
+        return "برای عضویت از منوی حساب وارد شوید و پروفایل و حق عضویت را تکمیل کنید."
+    if any(word in q for word in ("کمک", "حمایت", "اهدا", "donate")):
+        return "کمک بلاعوض از صفحهٔ حمایت انجام می‌شود. سوابق کمک هم در حساب کاربری دیده می‌شود."
+    if any(word in q for word in ("خبر", "اخبار")):
+        return "تازه‌های بنیاد در بخش اخبار است؛ از صفحهٔ اصلی یا منو وارد فهرست اخبار شوید."
+    if any(word in q for word in ("مقاله", "مجله")):
+        return "مقالات در بخش مجله منتشر می‌شوند."
+    if any(word in q for word in ("گالری", "آرشیو", "ویدئو", "عکس", "سند")):
+        return "تصاویر و ویدئوها در گالری‌اند و اسناد در آرشیو."
+    if any(word in q for word in ("زندگی", "بیوگرافی", "البرز", "شریف", "خط زمان", "مجتهدی")):
+        return "روایت زندگی دکتر مجتهدی در زندگی‌نامه و خط زمان آمده است."
+    if any(word in q for word in ("تماس", "آدرس", "تلفن", "ایمیل")):
+        return "راه‌های ارتباطی در صفحهٔ تماس است." + contact
+    if "پروژه" in q:
+        return "پروژه‌های بنیاد در صفحهٔ پروژه‌ها معرفی شده‌اند."
+    extra = (ops.ai_system_extra or "").strip()
+    if extra:
+        return _clip(extra, 400)
+    return (
+        "می‌توانم دربارهٔ عضویت، حمایت، اخبار، مجله، گالری، زندگی‌نامه و تماس راهنمایی کنم."
+        + contact
+    )
+
+
 def chat_completion(
     *,
     messages: Any,
@@ -226,7 +261,12 @@ def chat_completion(
         raise AiChatError("دستیار هوشمند غیرفعال است.")
     api_key = (ops.ai_api_key or "").strip()
     if not api_key:
-        raise AiChatError("کلید API تنظیم نشده است.")
+        history = _normalize_messages(messages)
+        return {
+            "reply": _guide_reply(history[-1]["content"], ops),
+            "provider": "site",
+            "model": "guide",
+        }
 
     _check_rate_limit(client_key or "anon")
     history = _normalize_messages(messages)
@@ -249,6 +289,8 @@ def chat_completion(
 
 def test_ai_connection(ops: OpsSettings | None = None) -> str:
     ops = ops or _ops()
+    if not (ops.ai_api_key or "").strip():
+        raise AiChatError("برای تست اتصال، کلید API را وارد کنید.")
     result = chat_completion(
         messages=[
             {

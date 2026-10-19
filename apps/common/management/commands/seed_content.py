@@ -1,5 +1,11 @@
+from datetime import datetime
+from pathlib import Path
+from urllib.request import urlretrieve
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from apps.ai.models import AiChatConfig
 from apps.archive.models import ArchiveItem, OralHistoryInterview
@@ -12,6 +18,19 @@ from apps.content.models import (
 )
 from apps.foundation.models import CollaborateOption, FoundationProject, OrganMember, Sponsor
 from apps.heritage.models import Person, Place, TimelineEvent
+
+
+def _cover(filename: str, url: str) -> str:
+    dest = Path(settings.MEDIA_ROOT) / "news" / filename
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if not dest.exists() or dest.stat().st_size < 1000:
+        urlretrieve(url, dest)
+    return f"/media/news/{filename}"
+
+
+def _published(value: str):
+    parsed = datetime.strptime(value, "%Y-%m-%d %H:%M")
+    return timezone.make_aware(parsed, timezone.get_current_timezone())
 
 
 class Command(BaseCommand):
@@ -98,47 +117,142 @@ class Command(BaseCommand):
         news = [
             {
                 "slug": "ehdaye-asar-mahjoobi",
-                "title": "اهدای آثار استاد محجوبی",
-                "description": "اهدا برای اهداف آموزشی و یادمان/موزه.",
+                "title": "اهدای ۲ اثر از آثار و تابلوهای ارزشمند استاد محجوبی به بنیاد",
+                "description": "استاد حسین محجوبی دو اثر «حرکت و زندگی» و «برج البرز» را برای اهداف آموزشی و موزه به بنیاد اهدا کرد.",
                 "category": "اهداء",
-                "body": "آثار استاد حسین محجوبی به بنیاد اهدا شد.",
+                "author": "هیئت رئیسه بنیاد",
+                "status": "published",
+                "source": "https://drmojtahedi.com/NewsDetails.aspx?News_ID=50905b3f-dbfc-4032-bd5d-d1527f6f4ba3",
+                "cover": _cover(
+                    "mahjoobi.jpg",
+                    "https://drmojtahedi.com/Images/Img_News/14030502202638.jpg",
+                ),
+                "cover_tone": "pine",
+                "date_label": "۲ مرداد ۱۴۰۳",
+                "published_at": _published("2024-07-23 20:26"),
+                "body": "مطابق توافقنامه، دو اثر «حرکت و زندگی» و «برج البرز» به بنیاد اهدا شد.",
                 "blocks": [
                     {
                         "type": "paragraph",
-                        "text": "آثار استاد حسین محجوبی به بنیاد اهدا شد.",
+                        "text": "مطابق توافقنامه و صورتجلسهٔ اعضای هیئت مدیره با استاد حسین محجوبی اصیل، دو اثر «حرکت و زندگی» و «برج البرز» برای توسعهٔ اهداف آموزشی و فرهنگی عام‌المنفعه — از جمله پیگیری مقدمات ساخت یادمان و موزه در لاهیجان یا تهران — و نگهداری دائمی اثر دوم در موزه، به بنیاد اهدا شده است.",
                     },
-                    {
-                        "type": "tip",
-                        "text": "این آثار برای یادمان و موزه نگهداری می‌شوند.",
-                    },
-                ],
-                "date_label": "۱۴۰۳/۰۵/۰۲",
-            },
-            {
-                "slug": "chap-sheshom-be-mamlekatoon",
-                "title": "چاپ ششم به مملکتتون خدمت کنید",
-                "description": "اعلام انتشار چاپ ششم.",
-                "category": "انتشارات",
-                "body": "کتاب ارزشمند در آستانهٔ انتشار مجدد است.",
-                "blocks": [
                     {
                         "type": "paragraph",
-                        "text": "کتاب ارزشمند در آستانهٔ انتشار مجدد است.",
+                        "text": "این توافقنامه با حضور و امضای ابراهیم ثابت، بازرس قانونی بنیاد، و محمدحسن/سعید محجوبی، فرزند ارشد و نمایندهٔ تام‌الاختیار استاد، مبادله شد. اثر «حرکت و زندگی» و معادل وجه فروش آن، کمک بلاعوض استاد به بنیاد است و در گزارش فصلی به ناظر مالیاتی ارائه می‌شود.",
                     },
                     {
                         "type": "h2",
-                        "text": "چاپ ششم",
+                        "text": "جزئیات آثار",
+                    },
+                    {
+                        "type": "ul",
+                        "text": "«حرکت و زندگی»: ۱۰۰×۱۰۰ سانتی‌متر، رنگ‌وروغن روی بوم\n«برج البرز»: ۸۰×۱۲۰ سانتی‌متر، رنگ‌وروغن روی بوم؛ ایده‌ای برای بنای یادمان در تپه‌های اطراف لاهیجان",
+                    },
+                ],
+            },
+            {
+                "slug": "chap-sheshom-be-mamlekatoon",
+                "title": "چاپ ششم کتاب «به مملکتتون خدمت کنید» در آستانهٔ انتشار",
+                "description": "زندگی‌نامهٔ دست‌نویس دکتر مجتهدی برای ششمین بار، در ۱۵۰۰ نسخه، به چاپ می‌رسد.",
+                "category": "انتشارات",
+                "author": "هیئت رئیسه بنیاد",
+                "status": "published",
+                "source": "https://drmojtahedi.com/NewsDetails.aspx?News_ID=6f69ed90-2167-4564-a65e-94e24a74f671",
+                "cover": _cover(
+                    "book-sixth.jpg",
+                    "https://drmojtahedi.com/uploads/mamlakat%201.jpg",
+                ),
+                "cover_tone": "bronze",
+                "date_label": "۴ اردیبهشت ۱۴۰۳",
+                "published_at": _published("2024-04-23 16:31"),
+                "body": "کتاب «به مملکتتون خدمت کنید» برای ششمین بار در مرحلهٔ چاپ است.",
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": "کتاب «به مملکتتون خدمت کنید»، حاوی زندگی‌نامهٔ دست‌نویس زنده‌یاد دکتر محمدعلی مجتهدی گیلانی، برای ششمین بار در مرحلهٔ چاپ و انتشار قرار گرفته است.",
                     },
                     {
                         "type": "paragraph",
-                        "text": "علاقه‌مندان می‌توانند از بخش انتشارات پیگیری کنند.",
+                        "text": "تهیه‌کننده و مدیر پروژه مهندس نادر قادسی است و نشر لاک، وابسته به انتشارات امین‌الضرب، آن را منتشر می‌کند. گردآورنده سورنا امیری است. چاپ ششم ۱۵۰۰ نسخه است و در بهار ۱۴۰۳ در اختیار علاقه‌مندان قرار می‌گیرد. پنج چاپ پیشین روی هم ۵۹۰۰ نسخه بوده است.",
+                    },
+                    {
+                        "type": "h2",
+                        "text": "خرید",
+                    },
+                    {
+                        "type": "ul",
+                        "text": "فروش اینترنتی: chare.ir\nفروشگاه اختران، میدان انقلاب، بازارچهٔ کتاب\nپخش کتاب گزیده: ۰۲۱۶۶۴۹۲۹۶۲\nفروش تعداد: ۰۹۱۲۲۴۵۱۳۷۴، سورنا امیری",
+                    },
+                    {
+                        "type": "paragraph",
+                        "text": "اسناد، تصاویر و دست‌نوشته‌های کتاب از سایت alborz-drmojtahedi.com هم در دسترس است.",
                     },
                 ],
-                "date_label": "۱۴۰۳",
+            },
+            {
+                "slug": "moafiat-maliati-1401",
+                "title": "ابلاغ معافیت ۱۰۰٪ مالیاتی عملکرد سال ۱۴۰۱ بنیاد",
+                "description": "پس از رسیدگی در دارایی شرق تهران، معافیت کامل مالیاتی عملکرد ۱۴۰۱ رسماً ابلاغ شد.",
+                "category": "اطلاعیه",
+                "author": "هیئت رئیسه بنیاد",
+                "status": "published",
+                "source": "https://drmojtahedi.com/NewsDetails.aspx?News_ID=4b288d74-a5a8-4776-bc5e-b106c2a2a4ce",
+                "cover": _cover(
+                    "tax-1401.jpg",
+                    "https://drmojtahedi.com/uploads/Moafeyt%201401.jpg",
+                ),
+                "cover_tone": "ink",
+                "date_label": "۲۴ بهمن ۱۴۰۲",
+                "published_at": _published("2024-02-13 16:51"),
+                "body": "بنیاد از معافیت کامل مالیاتی عملکرد سال ۱۴۰۱ برخوردار شد.",
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": "با ابلاغ تشخیص، بنیاد فرهنگی دکتر مجتهدی از معافیت کامل مالیاتی عملکرد سال ۱۴۰۱ برخوردار شده است.",
+                    },
+                    {
+                        "type": "paragraph",
+                        "text": "معافیت مؤسسات عام‌المنفعه پس از ارائهٔ دفاتر قانونی، اسناد، اظهارنامه و رسیدگی ممیز، تأیید رئیس گروه مالیاتی و تصدیق ناظر مالیاتی اعمال می‌شود. این فرآیند برای بنیاد در دارایی شرق تهران طی و رسماً ابلاغ شد.",
+                    },
+                ],
+            },
+            {
+                "slug": "dastur-abdolmaleki-chabahar",
+                "title": "دستور پیگیری توافقنامهٔ بنیاد با منطقهٔ آزاد چابهار",
+                "description": "دبیر شورای عالی مناطق آزاد خواستار گزارش فوری از اجرای توافقنامه با بنیاد شد.",
+                "category": "خبر",
+                "author": "هیئت رئیسه بنیاد",
+                "status": "published",
+                "source": "https://drmojtahedi.com/NewsDetails.aspx?News_ID=137b3df8-3283-4117-899c-a9b24650616d",
+                "cover": _cover(
+                    "chabahar.jpg",
+                    "https://drmojtahedi.com/uploads/Dastor%20e%20AbdilM.jpg",
+                ),
+                "cover_tone": "bronze",
+                "date_label": "۲۴ مهر ۱۴۰۲",
+                "published_at": _published("2023-10-16 13:50"),
+                "body": "دکتر عبدالملکی دستور تهیهٔ گزارش فوری از توافقنامه با سازمان منطقهٔ آزاد چابهار را صادر کرد.",
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "text": "مهدی‌پور، عضو هیئت مدیره و خزانه‌دار و نمایندهٔ تام‌الاختیار بنیاد، با دکتر حجت‌الله عبدالملکی، دبیر شورای عالی مناطق آزاد، دیدار کرد. پس از این دیدار، به دکتر مقدم، مدیرعامل سازمان منطقهٔ آزاد چابهار، دستور تهیهٔ گزارش فوری از توافقنامه داده شد.",
+                    },
+                    {
+                        "type": "paragraph",
+                        "text": "توافق‌نامهٔ سال ۱۳۹۹ و اصلاحیهٔ ۱۴۰۰ برای خدمت به روستاهای کم‌برخوردار چابهار، دشتیاری و کنارک مبادله شده بود. بنیاد می‌گوید بخش عمدهٔ تعهدات مالی منطقه، از جمله سهم‌الشرکهٔ مراکز هماهنگی کارآفرینی و ادامهٔ ساخت پنج مدرسه، اجرا نشده است.",
+                    },
+                    {
+                        "type": "paragraph",
+                        "text": "هیئت رئیسه امیدوار است با این دستور، تعهدات منطقه پس از توافق تکمیلی ادامه پیدا کند. نمایندگی بنیاد در چابهار آمادگی استقرار و ازسرگیری فعالیت‌های متوقف‌شده را اعلام کرده است.",
+                    },
+                ],
             },
         ]
         for row in news:
-            NewsItem.objects.update_or_create(slug=row["slug"], defaults=row)
+            NewsItem.objects.update_or_create(
+                slug=row["slug"],
+                defaults={**row, "cover_image": None},
+            )
 
         for row in [
             {"slug": "miras", "title": "میراث", "sort_order": 1},

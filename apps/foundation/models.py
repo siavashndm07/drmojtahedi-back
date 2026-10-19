@@ -138,6 +138,7 @@ class SiteSettings(TimeStampedModel):
     watermark_apply_kinds = models.JSONField(default=list, blank=True)
     home_sections = models.JSONField(default=dict, blank=True)
     home_section_order = models.JSONField(default=list, blank=True)
+    footer_nav = models.JSONField(default=list, blank=True)
     hero_template = models.CharField(max_length=32, blank=True, default="fullBleed")
     hero_autoplay_delay = models.PositiveIntegerField(default=5600)
 

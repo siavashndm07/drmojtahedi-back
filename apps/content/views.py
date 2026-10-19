@@ -19,14 +19,18 @@ from apps.content.serializers import (
 
 
 class PublicNewsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = NewsItem.objects.exclude(status="draft").select_related("cover_image")
+    queryset = (
+        NewsItem.objects.exclude(status="draft")
+        .select_related("cover_image")
+        .order_by("-published_at", "-id")
+    )
     serializer_class = NewsItemSerializer
     lookup_field = "slug"
     permission_classes = [AllowAny]
 
 
 class AdminNewsViewSet(viewsets.ModelViewSet):
-    queryset = NewsItem.objects.all().select_related("cover_image")
+    queryset = NewsItem.objects.select_related("cover_image").order_by("-published_at", "-id")
     serializer_class = NewsItemSerializer
     permission_classes = [IsStaffUser]
 
